@@ -18,11 +18,6 @@ MongoClient.connect('mongodb+srv://admin:qwer1234@cluster0.0p5tziw.mongodb.net/t
 
     db = client.db('todoapp')
 
-    db.collection('post').insertOne( {이름 : 'John', _id : 100} , function(에러, 결과){
-        console.log('저장완료')
-    })
-
-
     app.post('/add', (req, res) => {
 
         res.send('전송완료')
@@ -49,7 +44,16 @@ MongoClient.connect('mongodb+srv://admin:qwer1234@cluster0.0p5tziw.mongodb.net/t
         })
     })
 
-    app.listen(8080, () => console.log('listening on 8080'))
+})
+
+app.delete('/delete', (req, res) => {
+
+    req.body._id = parseInt(req.body._id)
+    db.collection('post').deleteOne({_id: req.body._id}, (err, result) => {
+        console.log('삭제완료')
+        res.status(200).send({ message: '성공했습니다.' })
+    })
 })
 
 
+app.listen(8080, () => console.log('listening on 8080'))
