@@ -4,10 +4,11 @@ const app = express()
 app.use(express.urlencoded({extended: true}))
 app.set('view engine', 'ejs')
 
+app.use('/public', express.static('public'))
 
-app.get('/write', (req, res) => res.sendFile(__dirname + '/write.html'))
+app.get('/write', (req, res) => res.render(__dirname + '/views/write.ejs'))
 
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'))
+app.get('/', (req, res) => res.render(__dirname + '/views/index.ejs'))
 
 const MongoClient = require('mongodb').MongoClient
 let db
