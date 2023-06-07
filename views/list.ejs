@@ -14,7 +14,10 @@
 
     <%- include('nav.html') %>
 
-
+    <div class="container input-group mb-2">
+      <input class="form-control" id="input">
+      <button class="input-group-append btn btn-danger" id="search">검색</button>
+    </div>
     <ul class="list-group">
       <% for (let i = 0; i < posts.length; i ++) { %>
         <li class="list-group-item">
@@ -41,6 +44,12 @@
 			console.log('실패')
 		})
 	})
+
+  $('#search').click(function(){
+    const value = $('input').val()
+    window.location.replace('/search?value='+value)
+  })
+
     </script>
 
     <!-- Option 1: jQuery and Bootstrap Bundle (includes Popper) -->
