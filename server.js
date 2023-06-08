@@ -142,7 +142,26 @@ passport.deserializeUser(function (아이디, done) {
 })
 
 app.get('/search', (req, res) => {
-    db.collection('post').find({제목 : req.query.value}).toArray((에러, 결과)=>{
-        console.log(결과)
+    const 검색조건 = [
+        {
+            $search: {
+                index: 'titleSearch',
+                text: {
+                    query: req.query.value,
+                    path: '제목'
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                제목: 1,
+                날짜: 1
+            }
+        }
+    ]
+    
+    db.collection('post').aggregate(검색조건).toArray((err, result)=>{
+        res.render('search.ejs', { posts : result })
     })
 })
