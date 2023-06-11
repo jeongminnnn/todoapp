@@ -46,8 +46,6 @@ MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(�
 
 app.post('/add', (req, res) => {
 
-    res.send('전송완료')
-
     db.collection('counter').findOne({ name:'게시물갯수' }, (err, result) => {
 
         let 총게시물갯수 = result.totalPost
@@ -140,6 +138,13 @@ passport.deserializeUser(function (아이디, done) {
         done(null, 결과)
     })
 })
+
+app.post('/register', (req, res) => {
+    db.collection('login').insertOne({ id: req.body.id, pw: req.body.pw }, (err, result) => {
+        res.redirect('/')
+    })
+})
+
 
 app.get('/search', (req, res) => {
     const 검색조건 = [
