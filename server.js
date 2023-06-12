@@ -24,6 +24,7 @@ app.get('/mypage', 로그인했니,(req, res) => {
     
     res.render('mypage.ejs', { 사용자: req.user })
 })
+
 function 로그인했니(req, res, next) {
     if (req.user) {
         next()
@@ -44,36 +45,11 @@ MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(�
     app.listen(process.env.PORT, () => console.log('listening on 8080'))
 })
 
-app.post('/add', (req, res) => {
-
-    db.collection('counter').findOne({ name:'게시물갯수' }, (err, result) => {
-
-        let 총게시물갯수 = result.totalPost
-
-        db.collection('post').insertOne({ _id: 총게시물갯수+1, 제목: req.body.title, 날짜: req.body.date}, (err, result) => {
-            console.log('저장완료')
-
-            db.collection('counter').updateOne({ name:'게시물갯수' }, { $inc : {totalPost:1} }, (err, result) => {
-                if (err) {return console.log(err)}
-            })
-        })
-    })
-})
-
 app.get('/list', (req, res) => {
 
     db.collection('post').find().toArray((err, result) => {
         console.log(result)
         res.render('list.ejs', { posts : result })
-    })
-})
-
-app.delete('/delete', (req, res) => {
-
-    req.body._id = parseInt(req.body._id)
-    db.collection('post').deleteOne({_id: req.body._id}, (err, result) => {
-        console.log('삭제완료')
-        res.status(200).send({ message: '성공했습니다.' })
     })
 })
 
@@ -146,6 +122,36 @@ app.post('/register', (req, res) => {
 })
 
 
+app.post('/add', (req, res) => {
+
+    db.collection('counter').findOne({ name:'게시물갯수' }, (err, result) => {
+
+        let 총게시물갯수 = result.totalPost
+        const post = { _id: 총게시물갯수+1, 제목: req.body.title, 날짜: req.body.date, 작성자: req.user._id }
+
+        db.collection('post').insertOne(post, (err, result) => {
+            console.log('저장완료')
+
+            db.collection('counter').updateOne({ name:'게시물갯수' }, { $inc : {totalPost:1} }, (err, result) => {
+                if (err) {return console.log(err)}
+            })
+        })
+    })
+})
+
+app.delete('/delete', (req, res) => {
+
+    req.body._id = parseInt(req.body._id)
+
+    const deleteFilter = { _id: req.body._id, 작성자: req.user._id }
+
+    db.collection('post').deleteOne(deleteFilter, (err, result) => {
+        console.log('삭제완료')
+        res.status(200).send({ message: '성공했습니다.' })
+    })
+})
+
+
 app.get('/search', (req, res) => {
     const 검색조건 = [
         {
@@ -206,4 +212,23 @@ app.post('/upload', upload.single('profile'), (req, res) => {
 
 app.get('/image/:imageName', (req, res) => {
     res.sendFile(__dirname + '/public/image/' + req.params.imageName)
+})
+
+const { ObjectId } = require('mongodb')
+app.post('/chatroom', 로그인했니, (req, res) => {
+    
+    const chat = {
+        title: '채팅방',
+        member : [ObjectId(req.body.당한사람id), req.user._id],
+        date: new Date()
+    }
+    db.collection('chatroom').insertOne(chat).then((err, result) => {
+        res.send('채팅방 생성완료')
+    })
+})
+
+app.get('/chat', 로그인했니, (req, res) => {
+    db.collection('chatroom').find({ member : req.user._id }).toArray().then((result)=>{
+        res.render('chat.ejs', {data : result})
+    })
 })
