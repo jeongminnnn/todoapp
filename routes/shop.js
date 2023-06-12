@@ -1,5 +1,7 @@
 const router = require('express').Router()
 
+router.use(로그인했니)
+
 function 로그인했니(req, res, next) {
     if (req.user) {
         next()
@@ -8,11 +10,11 @@ function 로그인했니(req, res, next) {
     }
 }
 
-router.get('/shirts', 로그인했니, (req, res) => {
+router.get('/shirts', (req, res) => {
     res.send('셔츠 파는 페이지입니다.')
 })
 
-router.get('/pants', 로그인했니, (req, res) => {
+router.get('/pants', (req, res) => {
     res.send('바지 파는 페이지입니다.')
 })
 

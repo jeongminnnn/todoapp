@@ -174,3 +174,36 @@ app.get('/search', (req, res) => {
 app.use('/shop', require('./routes/shop.js'))
 
 app.use('/board/sub', require('./routes/board.js'))
+
+let multer = require('multer')
+let storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './public/image')
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname + new Date())
+    },
+    fileFilter: function (req, file, cb) {
+        const ext = path.extname(file.originalname)
+        if (ext !== '.jpg' && ext !== '.png' && ext !== '.gif' && ext !== '.jpeg') {
+            return cb(res.status(400).end('jpg, png, gif, jpeg만 업로드 가능합니다.'))
+        }
+        cb(null, true)
+    },
+    limits:{
+        fileSize: 1024 * 1024
+    }
+})
+let upload = multer({ storage: storage })
+
+app.get('/upload', (req, res) => {
+    res.render('upload.ejs')
+})
+
+app.post('/upload', upload.single('profile'), (req, res) => {
+    res.send('업로드완료')
+})
+
+app.get('/image/:imageName', (req, res) => {
+    res.sendFile(__dirname + '/public/image/' + req.params.imageName)
+})
