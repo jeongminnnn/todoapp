@@ -232,3 +232,17 @@ app.get('/chat', 로그인했니, (req, res) => {
         res.render('chat.ejs', {data : result})
     })
 })
+
+app.post('/message', 로그인했니, (req, res) => {
+    const message = {
+        parent: req.body.parent,
+        content: req.body.content,
+        userid: req.user._id,
+        date: new Date()
+    }
+    console.log(message)
+    db.collection('message').insertOne(message).then((err, result) => {
+        res.send('메시지 저장완료')
+    }
+    )
+})
