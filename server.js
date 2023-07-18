@@ -246,3 +246,15 @@ app.post('/message', 로그인했니, (req, res) => {
     }
     )
 })
+
+app.get('/message', 로그인했니, function (req, res) {
+
+    res.writeHead(200, {
+        "Connection": "keep-alive",
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+    })
+    
+    res.write('event: test\n')
+    res.write('data: 안녕하세요\n\n')
+})
