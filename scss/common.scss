@@ -1,0 +1,87 @@
+@import "./reset.css";
+
+$color-section: rgb(26, 26, 28);
+$color-inner-section: rgb(52, 55, 65);
+$color-font: #eee;
+$color--font-dark: #8b95a1;
+$color--point: #f55139;
+$color--blue0: #304f6d;
+$color--blue1: #3F5F8F;
+// $color--point: #F44700;
+
+
+@mixin sm-txt {
+    font-size: .8em;
+    color: $color--font-dark;
+    font-weight: 300;
+}
+@mixin btn0 {
+    display: block;
+    width: 100%;
+    border-radius: 30px;
+    padding: 10px 0;
+    font-size: .8em;
+    transition: .3s;
+    background-color: $color--point;
+    color: $color-font;
+    border: 1px solid $color--point;
+    text-align: center;
+    &:hover, &:focus {
+        background-color: lighten($color: $color--point, $amount: 3%);
+        border-color: lighten($color: $color--point, $amount: 3%);
+    }
+}
+
+body {
+    min-height: 100vh;
+    background-color: #000;
+    color: $color-font;
+    .isNone {
+        display: none;
+    }
+}
+
+.wrap {
+}
+
+.login {
+    height: 100vh;
+    display: flex;
+    justify-content: center;    
+    align-items: center;
+    main {
+        width: 300px;
+        height: 70vh;
+        max-height: 400px;
+        .logo {
+            padding-bottom: 2em;
+            text-align: center;
+            img {
+                width: 150px;
+            }
+        }
+        form {
+            input {
+                background-color: $color-section;
+                border-radius: 10px;
+                width: 90%;
+                padding: 1em 5%;
+                margin-bottom: .8em;
+            }
+            a {
+                @include sm-txt;
+                display: block;
+                width: fit-content;
+                margin-left: auto;
+                transition: .2s;
+                &:hover, &:focus {
+                    color: #fff;
+                }
+            }
+            button {
+                @include btn0;
+                margin: 2em 0 1em;
+            }
+        }
+    }
+}

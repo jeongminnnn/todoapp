@@ -1,24 +1,134 @@
 const express = require('express')
 const app = express()
-const methodOverride = require('method-override')
-const passport = require('passport')
-const LocalStrategy = require('passport-local').Strategy
+const path = require('path')
 const session = require('express-session')
+const passport = require('passport')
+const bodyParser = require('body-parser')
+const LocalStrategy = require('passport-local').Strategy
 require('dotenv').config()
+
+app.use('/static', express.static('static'))
+app.use(bodyParser.json())
+
+const MongoClient = require('mongodb').MongoClient
+const uri = process.env.DB_URL
+const client = new MongoClient(uri, { useUnifiedTopology: true })
+async function startServer() {
+    try{
+
+        await client.connect()
+        const db = client.db('todoapp')
+
+        // Middleware to attach 'db' to the 'req' object
+        app.use((req, res, next) => {
+            req.db = db
+            next()
+        })
+
+        // Passport Middleware
+        app.use(session({secret : '비밀코드', resave : true, saveUninitialized: false}))
+        app.use(passport.initialize())
+        app.use(passport.session())
+
+        // Middleware to check login status and redirect to /login if not logged in
+        app.use((req, res, next) => {
+            if (req.user || req.path === '/login') {
+                // If the user is logged in or accessing the /login page, proceed to the next middleware/route.
+                next();
+            } else {
+                // If the user is not logged in and not accessing the /login page, redirect to /login.
+                res.redirect('/login');
+            }
+        })
+
+        // routes
+        app.get('/write', (req, res) => res.render(__dirname + '/views/write.ejs'))
+        app.get('/', (req, res) => res.render(__dirname + '/views/index.ejs'))
+        app.get('/login', (req, res) => res.render('login.ejs'))
+
+        // Use authRouter.passportStrategy directly as middleware for /login route
+        app.post('/login', passport.authenticate('local', {
+            failureRedirect: '/fail'
+        }), (req, res) => {
+            res.redirect('/')
+        })
+        passport.use(new LocalStrategy({
+            usernameField: 'id',
+            passwordField: 'pw',
+            session: true,
+            passReqToCallback: false,
+        }, function (입력한아이디, 입력한비번, done) {
+            console.log(입력한아이디, 입력한비번)
+            db.collection('login').findOne({ id: 입력한아이디 }, function (에러, 결과) {
+                if (에러) return done(에러)
+        
+                if (!결과) return done(null, false, { message: '존재하지않는 아이디요' })
+                if (입력한비번 == 결과.pw) {
+                    return done(null, 결과)
+                } else {
+                    return done(null, false, { message: '비번틀렸어요' })
+                }
+            })
+        }))
+        passport.serializeUser(function (user, done) {
+            done(null, user.id)
+        })
+        passport.deserializeUser(function (아이디, done) {
+            db.collection('login').findOne({ id: 아이디 }, function (에러, 결과) {
+                done(null, 결과)
+            })
+        })
+
+        // Include the /register route from authRouter.router
+// Include the /register route from authRouter.router
+app.post('/register', (req, res) => {
+    const id = req.body.id;
+    const pw = req.body.pw;
+
+    // Check if the id already exists in the db
+    db.collection('login').findOne({ id: id }, (err, result) => {
+        if (err) {
+            console.error('Error:', err)
+            res.status(500).json({ message: 'Internal Server Error' })
+        } else {
+            if (result) {
+                res.status(409).json({ message: '이미 존재하는 아이디입니다.' })
+            } else {
+                db.collection('login').insertOne({ id: id, pw: pw }, (err, result) => {
+                    if (err) {
+                        res.status(500).json({ message: 'Internal Server Error' })
+                    } else {
+                        res.status(200).json({ message: 'Registration successful' })
+                    }
+                })
+            }
+        }
+    });
+});
+
+        app.get('/list', (req, res) => {
+
+            db.collection('post').find().toArray((err, result) => {
+                res.render('list.ejs', { posts : result })
+            })
+        })
+
+    app.listen(process.env.PORT, () => console.log('Listening on 8080'))
+
+    } catch (err) {
+        
+        console.error('Error:', err)
+    }   
+}
+
+startServer()
+
+const methodOverride = require('method-override')
 
 
 app.set('view engine', 'ejs')
 app.use(express.urlencoded({extended: true}))
 app.use(methodOverride('_method'))
-app.use('/public', express.static('public'))
-
-app.use(session({secret : '비밀코드', resave : true, saveUninitialized: false}))
-app.use(passport.initialize())
-app.use(passport.session())
-
-app.get('/write', (req, res) => res.render(__dirname + '/views/write.ejs'))
-app.get('/', (req, res) => res.render(__dirname + '/views/index.ejs'))
-app.get('/login', (req, res) => res.render('login.ejs'))
 
 app.get('/mypage', 로그인했니,(req, res) => {
     
@@ -32,26 +142,6 @@ function 로그인했니(req, res, next) {
         res.send('로그인안하셨는데요?')
     }
 }
-
-const MongoClient = require('mongodb').MongoClient
-let db
-MongoClient.connect(process.env.DB_URL, { useUnifiedTopology: true }, function(에러, client){
-
-    // 연결되면 할 일
-    if (에러) return console.log(에러)
-
-    db = client.db('todoapp')
-
-    app.listen(process.env.PORT, () => console.log('listening on 8080'))
-})
-
-app.get('/list', (req, res) => {
-
-    db.collection('post').find().toArray((err, result) => {
-        console.log(result)
-        res.render('list.ejs', { posts : result })
-    })
-})
 
 app.get('/detail/:id', (req, res) => {
 
@@ -79,48 +169,6 @@ app.put('edit', (req, res) => {
         res.redirect('/list')
     })
 })
-
-app.post('/login', passport.authenticate('local', {
-    failureRedirect: '/fail'
-}), (req, res) => {
-    res.redirect('/')
-})
-
-passport.use(new LocalStrategy({
-    usernameField: 'id',
-    passwordField: 'pw',
-    session: true,
-    passReqToCallback: false,
-}, function (입력한아이디, 입력한비번, done) {
-    console.log(입력한아이디, 입력한비번)
-    db.collection('login').findOne({ id: 입력한아이디 }, function (에러, 결과) {
-        if (에러) return done(에러)
-
-        if (!결과) return done(null, false, { message: '존재하지않는 아이디요' })
-        if (입력한비번 == 결과.pw) {
-            return done(null, 결과)
-        } else {
-            return done(null, false, { message: '비번틀렸어요' })
-        }
-    })
-}))
-
-passport.serializeUser(function (user, done) {
-    done(null, user.id)
-})
-
-passport.deserializeUser(function (아이디, done) {
-    db.collection('login').findOne({ id: 아이디 }, function (에러, 결과) {
-        done(null, 결과)
-    })
-})
-
-app.post('/register', (req, res) => {
-    db.collection('login').insertOne({ id: req.body.id, pw: req.body.pw }, (err, result) => {
-        res.redirect('/')
-    })
-})
-
 
 app.post('/add', (req, res) => {
 
@@ -184,7 +232,7 @@ app.use('/board/sub', require('./routes/board.js'))
 let multer = require('multer')
 let storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, './public/image')
+        cb(null, './static/image')
     },
     filename: function (req, file, cb) {
         cb(null, file.originalname + new Date())
@@ -211,7 +259,7 @@ app.post('/upload', upload.single('profile'), (req, res) => {
 })
 
 app.get('/image/:imageName', (req, res) => {
-    res.sendFile(__dirname + '/public/image/' + req.params.imageName)
+    res.sendFile(__dirname + '/static/image/' + req.params.imageName)
 })
 
 const { ObjectId } = require('mongodb')
@@ -240,21 +288,27 @@ app.post('/message', 로그인했니, (req, res) => {
         userid: req.user._id,
         date: new Date()
     }
-    console.log(message)
-    db.collection('message').insertOne(message).then((err, result) => {
-        res.send('메시지 저장완료')
-    }
-    )
+    console.log(req.body)
+    db.collection('message').insertOne(message)
+        .then((err, result) => {
+            res.json({ message: 'db 저장완료' })
+        })
+        .catch(err => {
+            console.error('Error:', err)
+            res.status(500).json({ error: 'Failed to save to the database' })
+        })
 })
 
-app.get('/message', 로그인했니, function (req, res) {
+app.get('/message/:id', 로그인했니, (req, res) => {
 
     res.writeHead(200, {
         "Connection": "keep-alive",
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
     })
-    
-    res.write('event: test\n')
-    res.write('data: 안녕하세요\n\n')
+
+    db.collection('message').find({ parent: req.params.id }).toArray().then((result) => {
+        res.write('event: message\n')
+        res.write('data: ' + JSON.stringify(result) + '\n\n')
+    })
 })
